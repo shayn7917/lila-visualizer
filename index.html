@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LILA BLACK — Player Journey Visualizer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>LILA BLACK — Player Journey Visualizer</h1>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: controls -->
+  <aside class="controls">
+    <label>Map
+      <select id="mapSelect"></select>
+    </label>
+
+    <label>Date
+      <select id="daySelect"></select>
+    </label>
+
+    <label>Match
+      <select id="matchSelect"></select>
+    </label>
+
+    <div class="match-meta" id="matchMeta"></div>
+
+    <hr>
+
+    <div class="legend">
+      <div><span class="dot human"></span> Human</div>
+      <div><span class="dot bot"></span> Bot</div>
+      <div><span class="marker kill"></span> Bot Kill</div>
+      <div><span class="marker killed"></span> Bot Killed (by bot)</div>
+      <div><span class="marker loot"></span> Loot</div>
+      <div><span class="marker storm"></span> Storm Death</div>
+    </div>
+
+    <hr>
+
+    <label class="checkbox">
+      <input type="checkbox" id="heatmapToggle"> Show heatmap
+    </label>
+    <div class="heatmap-modes" id="heatmapModes">
+      <label><input type="radio" name="heatmapMode" value="deaths" checked> Death zones</label>
+      <label><input type="radio" name="heatmapMode" value="kills"> Kill zones</label>
+      <label><input type="radio" name="heatmapMode" value="traffic"> Traffic density</label>
+    </div>
+  </aside>
+
+  <!-- CENTER: canvas -->
+  <main>
+    <div class="canvas-wrap">
+      <canvas id="mapCanvas" width="1024" height="1024"></canvas>
+    </div>
+
+    <div class="timeline">
+      <button id="playBtn">▶ Play</button>
+      <input type="range" id="timeSlider" min="0" max="100" value="0">
+      <span id="timeLabel">0:00</span>
+    </div>
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
