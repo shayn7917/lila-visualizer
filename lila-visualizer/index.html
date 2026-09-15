@@ -1,72 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>LILA BLACK — Player Journey Visualizer</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090b10">
+  <meta name="description" content="LILA BLACK player journey visualizer for session telemetry replay and spatial analysis.">
+  <title>LILA BLACK — Player Journey Visualizer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<header>
-  <h1>LILA BLACK — Player Journey Visualizer</h1>
-</header>
-
-<div class="layout">
-
-  <!-- LEFT: controls -->
-  <aside class="controls">
-    <label>Map
-      <select id="mapSelect"></select>
-    </label>
-
-    <label>Date
-      <select id="daySelect"></select>
-    </label>
-
-    <label>Match
-      <select id="matchSelect"></select>
-    </label>
-
-    <div class="match-meta" id="matchMeta"></div>
-
-    <hr>
-
-    <div class="legend">
-      <div><span class="dot human"></span> Human</div>
-      <div><span class="dot bot"></span> Bot</div>
-      <div><span class="marker kill"></span> Bot Kill</div>
-      <div><span class="marker killed"></span> Bot Killed (by bot)</div>
-      <div><span class="marker loot"></span> Loot</div>
-      <div><span class="marker storm"></span> Storm Death</div>
-    </div>
-
-    <hr>
-
-    <label class="checkbox">
-      <input type="checkbox" id="heatmapToggle"> Show heatmap
-    </label>
-    <div class="heatmap-modes" id="heatmapModes">
-      <label><input type="radio" name="heatmapMode" value="deaths" checked> Death zones</label>
-      <label><input type="radio" name="heatmapMode" value="kills"> Kill zones</label>
-      <label><input type="radio" name="heatmapMode" value="traffic"> Traffic density</label>
-    </div>
-  </aside>
-
-  <!-- CENTER: canvas -->
-  <main>
-    <div class="canvas-wrap">
-      <canvas id="mapCanvas" width="1024" height="1024"></canvas>
-    </div>
-
-    <div class="timeline">
-      <button id="playBtn">▶ Play</button>
-      <input type="range" id="timeSlider" min="0" max="100" value="0">
-      <span id="timeLabel">0:00</span>
-    </div>
-  </main>
-
-</div>
-
-<script src="app.js"></script>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">LB</div>
+        <div>
+          <div class="eyebrow">TELEMETRY LAB</div>
+          <h1>LILA BLACK <span>Player Journey Visualizer</span></h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-pill" id="datasetStatus"><span class="status-dot"></span> Loading dataset</div>
+        <button class="icon-btn" id="fullscreenBtn" type="button" title="Fullscreen map" aria-label="Fullscreen map">⛶</button>
+      </div>
+    </header>
+    <section class="toolbar">
+      <div class="filter-group">
+        <label><span>Map</span><select id="mapSelect"></select></label>
+        <label><span>Date</span><select id="daySelect"></select></label>
+        <label class="match-filter"><span>Match</span><select id="matchSelect"></select></label>
+      </div>
+      <div class="toolbar-actions">
+        <button class="ghost-btn" id="resetViewBtn" type="button">Reset view</button>
+        <button class="ghost-btn" id="shareBtn" type="button">Copy link</button>
+      </div>
+    </section>
+    <main class="dashboard">
+      <aside class="sidebar">
+        <section class="panel match-panel">
+          <div class="panel-header"><div><div class="eyebrow">SELECTED SESSION</div><h2 id="matchTitle">Loading match…</h2></div><div class="match-badge" id="matchBadge">—</div></div>
+          <div class="meta-grid" id="matchMeta"></div>
+        </section>
+        <section class="stats-grid" id="matchStats"></section>
+        <section class="panel">
+          <div class="panel-header compact"><div><div class="eyebrow">ACTORS</div><h3>Replay visibility</h3></div></div>
+          <div class="segmented" id="actorFilter" role="group" aria-label="Actor filter">
+            <button type="button" data-actor="all" class="active">All</button><button type="button" data-actor="human">Humans</button><button type="button" data-actor="bot">Bots</button>
+          </div>
+          <div class="legend compact-legend"><div><span class="legend-line human"></span><span>Human path</span><span class="legend-note">red</span></div><div><span class="legend-line bot"></span><span>Bot path</span><span class="legend-note">cyan</span></div></div>
+        </section>
+        <section class="panel">
+          <div class="panel-header compact"><div><div class="eyebrow">EVENT LAYER</div><h3>Show markers</h3></div></div>
+          <div class="event-toggles">
+            <label><input type="checkbox" data-event="kill" checked><span class="event-icon kill">★</span> Kills</label>
+            <label><input type="checkbox" data-event="death" checked><span class="event-icon death">×</span> Deaths</label>
+            <label><input type="checkbox" data-event="loot" checked><span class="event-icon loot">●</span> Loot</label>
+            <label><input type="checkbox" data-event="storm" checked><span class="event-icon storm">＋</span> Storm deaths</label>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header compact"><div><div class="eyebrow">HEATMAP</div><h3>Spatial density</h3></div><label class="switch"><input type="checkbox" id="heatmapToggle"><span></span></label></div>
+          <div class="heatmap-modes" id="heatmapModes"><label><input type="radio" name="heatmapMode" value="deaths" checked> Death zones</label><label><input type="radio" name="heatmapMode" value="kills"> Kill zones</label><label><input type="radio" name="heatmapMode" value="traffic"> Traffic density</label></div>
+        </section>
+        <div class="sidebar-footer"><span>Data: 796 processed matches</span><span>3 maps · 5 days</span></div>
+      </aside>
+      <section class="viewer-panel" id="viewerPanel">
+        <div class="viewer-toolbar"><div class="viewer-title"><span class="live-dot"></span><span id="viewerState">Replay ready</span></div><div class="viewer-actions"><label class="speed-control">Speed<select id="speedSelect"><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="20">20×</option></select></label><button class="icon-btn" id="fitBtn" type="button" title="Redraw map">⌗</button></div></div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="mapCanvas" width="1024" height="1024"></canvas>
+          <div class="map-overlay top-left"><div class="overlay-card"><span class="overlay-label">MAP</span><strong id="mapLabel">—</strong></div></div>
+          <div class="map-overlay top-right"><div class="overlay-card"><span class="overlay-label">PLAYERS</span><strong id="playersLabel">—</strong></div></div>
+          <div class="map-overlay bottom-left" id="eventToast" aria-live="polite"></div>
+        </div>
+        <div class="timeline-panel">
+          <div class="timeline-main"><button class="play-btn" id="playBtn" type="button" aria-label="Play replay">▶</button><div class="timeline-track"><input type="range" id="timeSlider" min="0" max="100" value="0" step="1" aria-label="Replay time"><div class="timeline-progress" id="timelineProgress"></div></div><div class="time-code"><strong id="timeLabel">0:00</strong><span>/ <span id="durationLabel">0:00</span></span></div></div>
+          <div class="timeline-footer"><span id="eventCountLabel">0 visible events</span><button class="ghost-btn small" id="centerPlayerBtn" type="button">Center on human</button></div>
+        </div>
+      </section>
+    </main>
+    <div class="error-banner" id="errorBanner" role="alert" hidden><strong>Visualizer error</strong><span id="errorText"></span><button type="button" id="dismissError">Dismiss</button></div>
+  </div>
+  <script src="app.js"></script>
 </body>
 </html>
