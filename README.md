@@ -4,7 +4,8 @@ An interactive replay tool for LILA BLACK session telemetry. Pick a map, date, a
 
 **Live demo:** _(add your deployed URL here)_
 
-![Visualizer](<img width="967" height="764" alt="image" src="https://github.com/user-attachments/assets/d81f175a-8ba6-466e-bfc9-222a078ee30c" />)
+![Visualizer](![Uploading image.png…]()
+)
 
 ## Features
 
