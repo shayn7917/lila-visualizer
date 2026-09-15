@@ -1,86 +1,101 @@
 # LILA BLACK — Player Journey Visualizer
 
-An interactive replay tool for LILA BLACK session telemetry. Pick a map, date, and match, then scrub through the match to see where players moved, what they looted, who they killed, and where they died — drawn over the in-game minimap.
+An interactive replay tool for LILA BLACK session telemetry. Pick a map, date, and match, then scrub through the match to see player movement, loot, kills, and deaths over the in-game minimap.
 
-**Live demo:** (https://lila-visualizer-gamma.vercel.app)
-
-<img width="979" height="768" alt="image" src="https://github.com/user-attachments/assets/f9c60341-8b7a-46fa-8ddc-facde7721f57" />
-
+**Live demo:** https://lila-visualizer-gamma.vercel.app
 
 ## Features
 
-- **Match browser** — filter 796 matches by map and date
-- **Timeline scrubbing** — drag to any point in the match, or hit play for a 10× replay
-- **Path rendering** — human paths in red, bots in cyan, drawn progressively as time advances
-- **Event markers** — bot kills, deaths, loot pickups, and storm deaths
-- **Death heatmap** — toggleable density overlay showing where players die
+- **Match browser** — filter 796 processed matches by map and date
+- **Timeline scrubbing** — jump to any point in a match or play a 10× replay
+- **Path rendering** — humans in red, bots in cyan, drawn progressively with time
+- **Event markers** — kills, deaths, loot pickups, and storm deaths
+- **Heatmaps** — death zones, kill zones, and movement traffic density
+- **Responsive canvas** — minimap scales to the available viewport
 
 ## Feature walkthrough
 
-1. **Pick a map** from the top dropdown — filters everything below to that map.
-2. **Pick a date** (or leave "All dates") — narrows the match list further.
-3. **Pick a match** — loads that session and draws it on the minimap. The panel below shows map, day, and duration.
-4. **Scrub the timeline** — drag the slider to jump to any point in the match, or hit **Play** to watch it unfold at 10× speed. Paths draw progressively as time advances; nothing appears before it happened.
-5. **Read the paths** — red is the human player, cyan is bots. A colored dot marks each actor's current position at the selected time.
-6. **Spot events** — gold stars are kills, red X's are deaths, orange dots are loot pickups, purple crosses are storm deaths. The legend in the sidebar is the key.
-7. **Toggle the heatmap** — check "Show heatmap" and pick a mode:
-   - **Death zones** — where humans died, this match
-   - **Kill zones** — where humans got kills, this match
-   - **Traffic density** — an 8×8 grid shaded by how much human movement passed through each cell, this match
-8. **Cross-match patterns** — the in-app heatmaps are per-match by design (see ARCHITECTURE.md). For map-wide patterns across all matches — which is what `INSIGHTS.md` is built on — run `python3 analysis.py`.
+1. Pick a **Map**.
+2. Pick a **Date**, or leave **All dates** selected.
+3. Pick a **Match**. The longest matches are listed first.
+4. Scrub the **timeline** or press **Play**. Paths and events only appear once their timestamp is reached.
+5. Read the paths: **red = human**, **cyan = bot**.
+6. Read event markers from the legend.
+7. Enable **Show heatmap** and choose Death zones, Kill zones, or Traffic density.
+8. For cross-match analysis, run `python3 lila-visualizer/analysis.py` from the repository root.
 
 ## Quick start
 
-`fetch()` does not work over `file://`, so the app must be served over HTTP:
+The application uses `fetch()`, so serve it over HTTP rather than opening the HTML file directly.
+
+From the repository root:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory lila-visualizer
 ```
 
-Then open <http://localhost:8000>.
+Then open http://localhost:8000.
 
 ## Regenerating the data
 
-The repo ships with processed data in `data/`, so this is only needed if the raw dataset changes. Place the unzipped `player_data/` folder alongside `pipeline.py`:
+The processed dataset is committed under `lila-visualizer/data/`. Raw data is optional unless you want to rebuild it.
+
+Place the unzipped `player_data/` folder at the repository root, then run:
 
 ```bash
 pip install pyarrow pandas
-python3 pipeline.py
+python3 lila-visualizer/pipeline.py
 ```
 
-This reads all 1,243 `.nakama-0` files and writes `data/match_index.json` plus `data/matches/*.json`.
+The pipeline reads the `.nakama-0` files and writes `lila-visualizer/data/match_index.json` plus `lila-visualizer/data/matches/*.json`.
 
-To reproduce every figure quoted in `INSIGHTS.md`:
+You can override the paths when needed:
 
 ```bash
-python3 analysis.py
+python3 lila-visualizer/pipeline.py --raw-dir /path/to/player_data --output-dir /path/to/output
 ```
+
+## Reproducing the analysis
+
+```bash
+python3 lila-visualizer/analysis.py
+```
+
+`INSIGHTS.md` documents the findings and caveats behind the analysis.
 
 ## Deploying
 
-Everything is static, so any static host works. With the Vercel CLI:
+The actual static site is the `lila-visualizer/` directory. Configure your static host's output/root directory to that folder.
+
+For Vercel, from the repository root:
 
 ```bash
-npx vercel --prod
+npx vercel --prod lila-visualizer
 ```
 
-Or drag the folder onto <https://app.netlify.com/drop>. No build command, no environment variables; the output directory is the repo root.
+For a local production-style smoke test:
+
+```bash
+python3 -m http.server 8000 --directory lila-visualizer
+```
 
 ## Project layout
 
-```
-index.html          markup and controls
-app.js              data loading, canvas rendering, timeline
-style.css           layout
-pipeline.py         raw Parquet -> processed JSON
-analysis.py         reproduces the figures in INSIGHTS.md
-data/               processed output (committed)
-minimaps/           downscaled minimap images
-ARCHITECTURE.md     stack, data flow, coordinate mapping, tradeoffs
-INSIGHTS.md         three findings from the dataset
+```text
+README.md                    project documentation
+lila-visualizer/
+  index.html                 markup and controls
+  app.js                     data loading, canvas rendering, timeline
+  style.css                  layout and responsive styling
+  pipeline.py                raw Parquet -> processed JSON
+  analysis.py                reproduces the figures in INSIGHTS.md
+  data/                      committed processed output
+  minimaps/                  minimap images
+  ARCHITECTURE.md            stack, data flow, coordinate mapping, tradeoffs
+  INSIGHTS.md                findings from the dataset
 ```
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — how it's built and why, including the coordinate projection and two data bugs found in the raw dataset
-- [INSIGHTS.md](INSIGHTS.md) — what the data says about population, map usage, and retention
+- [ARCHITECTURE.md](lila-visualizer/ARCHITECTURE.md) — implementation, coordinate projection, data issues, and tradeoffs
+- [INSIGHTS.md](lila-visualizer/INSIGHTS.md) — findings from the telemetry dataset
