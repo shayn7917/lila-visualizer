@@ -1,115 +1,80 @@
-# Architecture
+# Architecture — LILA BLACK Player Journey Visualizer
 
-## Stack
+## Stack and why
 
-**Offline:** Python 3 + pyarrow + pandas (`pipeline.py`, `analysis.py`)
-**Runtime:** static HTML + vanilla JS + Canvas 2D. No framework, no build step, no backend.
+**Data:** Python 3 + pandas + pyarrow. **UI:** static HTML/CSS + vanilla JavaScript + Canvas 2D. **Hosting:** any static host (Vercel/Netlify/etc.).
 
-The dataset is fixed and read-only — 1,243 files that will never change at runtime. Anything a server would do here (parse, join, transform) can be done once, ahead of time, and shipped as static JSON. That removes the server, the database, the API layer, cold starts, and hosting cost from the project entirely, and makes the deploy a folder upload.
-
-Canvas over SVG/DOM because a single match renders up to ~1,000 path segments plus event markers, redrawn on every timeline tick. That's fine for immediate-mode Canvas and would mean thousands of DOM nodes churning in SVG.
+I chose a static frontend because the assignment dataset is fixed/read-only: Parquet is transformed once into browser-ready JSON, so there is no need for a runtime API, database, or backend. Canvas is used because replay continuously redraws many path segments and event markers; it avoids creating thousands of DOM/SVG nodes.
 
 ## Data flow
 
-```
-player_data/*/*.nakama-0   (1,243 Parquet files, 89,104 rows)
+```text
+player_data/*/*.nakama-0 (Parquet)
         |
-        |  pipeline.py  — read, decode, tag, project, compact
+        | pipeline.py
+        | decode events -> detect humans/bots -> normalize time
+        | world x/z -> minimap pixels -> compact event arrays
         v
-data/match_index.json      (796 matches: map, day, player counts, duration)
-data/matches/<id>.json     (one file per match, compact event rows)
+lila-visualizer/data/
+  match_index.json
+  matches/<match>.json
         |
-        |  fetch() on demand, one match at a time
+        | app.js fetches index once, then one match on demand
         v
-app.js  — rehydrate -> draw minimap -> overlay paths/events -> timeline
+Browser
+  filters -> replay state -> Canvas
+  paths + actor markers + events + heatmaps
 ```
 
-The index is loaded once on page load to populate filters. Match files are fetched only when selected, so the browser never holds more than one match in memory.
+The shipped app therefore starts without Python or Parquet support; `pipeline.py` remains the reproducible raw-data ingestion step.
 
-## Coordinate mapping
+## Coordinate mapping — the critical part
 
-Game world coordinates are projected onto the 1024-space minimap using the per-map `scale` and `origin` from the data README:
+The game uses **x/z for the horizontal ground plane** (`y` is elevation). Each map has its own scale and world-space origin, and the output minimap is 1024×1024:
 
-```
+| Map | scale | origin_x | origin_z |
+|---|---:|---:|---:|
+| AmbroseValley | 900 | -370 | -473 |
+| GrandRift | 581 | -290 | -290 |
+| Lockdown | 1000 | -500 | -500 |
+
+```text
 u = (x - origin_x) / scale
 v = (z - origin_z) / scale
 pixel_x = u * 1024
 pixel_y = (1 - v) * 1024
 ```
 
-Two details that matter:
+The vertical flip is required because world `z` increases upward while Canvas/image `y` increases downward. The projection is performed in `pipeline.py`, so the browser receives pixel coordinates directly. Unknown maps are skipped rather than using an incorrect transform.
 
-- **The ground plane is `x`/`z`, not `x`/`y`.** `y` is elevation and is discarded for a top-down view.
-- **The `v` axis is flipped.** World `z` increases northward; canvas `y` increases downward. Hence `(1 - v)`.
+## Data nuances / assumptions
 
-This is computed once in `pipeline.py`, not in the browser — the shipped JSON already contains pixel coordinates.
+- **Human vs bot:** UUID-shaped `user_id` = human; non-UUID ID = bot, following the supplied data convention.
+- **Events:** Parquet event values can be bytes, so they are decoded to UTF-8 before matching event names.
+- **Timestamps:** the stored integer behaves as seconds despite the source description saying milliseconds; using seconds produces realistic match dates/durations. Each match is normalized to elapsed `t` from its first observed event.
+- **Match duration:** duration is the span of observed telemetry, not necessarily the true lobby duration.
+- **Sessions:** the supplied files represent player sessions; the processed dataset contains 796 match IDs, but many matches have only one recorded human perspective. This is why the analysis explicitly treats PvP and retention findings with telemetry caveats.
 
-**Validation:** rather than trust the formula, I plotted a full match over the AmbroseValley minimap and checked that paths follow roads, enter buildings, and stay inside the playable boundary. A wrong axis or sign would have produced paths across open water or mirrored off-map. (`sanity_check_plot.png`.)
+## Major trade-offs
 
-The minimap source images are not 1024px (4320², 9000², 2160×2158). They're square, so scaling them into a 1024 canvas is uniform and the projection holds. GrandRift is 2px off square — a sub-pixel error, ignored.
-
-## Two data issues found and handled
-
-**1. `event` is stored as bytes, not strings.** Values arrive as `b'Position'`. Decoded to UTF-8 during load; comparing against `"Position"` without decoding silently matches nothing.
-
-**2. The `ts` column's unit is mislabelled.** The README documents `ts` as milliseconds, and the Parquet schema types it `datetime64[ms]`, so pyarrow reads the raw integer as ms-since-epoch — which decodes to January 1970 and makes every match appear to last under one second. Treating the same integer as **seconds** since epoch yields 2026-02-10, matching the `February_10` folder it came from. The raw integer is therefore in seconds, and is used as such.
-
-This mattered: the first pass silently produced a "maximum match duration" of 890 **milliseconds**. The bug was only visible because the number was implausible against the README's "matches last several minutes." Timestamps are now normalised to seconds elapsed since each match's own start (`t`), which is what the playback timeline needs anyway.
-
-## Wire format
-
-The naive per-match JSON (full UUID, event name, and 10-decimal `x/y/z/pixel_x/pixel_y` on every row) came to 20 MB. Compacted to 3.8 MB — an 81% reduction — by:
-
-- dropping `x`, `y`, `z` (the client only needs pixel coordinates)
-- rounding pixel coordinates to 1 decimal (sub-pixel precision is invisible at 700px display size)
-- interning `user_id` and event names into per-match lookup tables
-- emitting each event as a positional array `[player, event, t, px, py]` instead of a keyed object
-
-`app.js` rehydrates this into plain objects on load. The tradeoff is that the on-disk format is no longer self-describing, so each file carries a `schema` field and the rehydration lives in one place.
-
-## Assumptions
-
-- **Human vs bot** is determined by whether `user_id` parses as a UUID; plain integers are bots. This follows the README and holds across all 1,243 files.
-- **Match duration** is the span of observed events, not true match length. A player who disconnects early shortens the recorded match.
-- **Each file is one player's session.** 743 of 796 matches contain a single actor, so most "matches" are one perspective rather than a full lobby reconstruction.
-- **Short matches are kept, not filtered.** The shortest is 13s. They're real sessions and dropping them would bias session-length statistics, which finding #3 depends on.
-- **Out-of-bounds points are kept** but excluded from grid analysis. None were observed on inspection.
-
-## Major tradeoffs
-
-| Decision | Considered | Chose | Why |
+| Decision | Chosen | Alternative | Reason |
 |---|---|---|---|
-| Backend | A small API server (Node/Flask) serving matches on demand | No backend — precompute static JSON | Dataset is fixed and read-only; nothing to compute at request time. Removes hosting cost, cold starts, and an entire layer of things to deploy. |
-| Frontend framework | React | Plain HTML/JS/Canvas | Single view, four controls — a framework's benefit (component reuse, state management) doesn't pay for its setup cost at this scope. Also removes the build step, so `git clone` + a static server is the entire dev environment. |
-| Rendering surface | SVG/DOM | Canvas 2D | A 15-player match redraws ~1,000 path segments per timeline tick. SVG would mean thousands of live DOM nodes; Canvas repaints in one pass. |
-| Cross-match views | Aggregate heatmap across all matches on a map, in the UI | Per-match only in the UI; aggregates via `analysis.py` | Keeps the client simple and memory flat (one match loaded at a time). Aggregate questions are answered by a script instead — the tradeoff is no live aggregate view in the browser today. |
-| Data payload | Ship raw parsed fields (full UUIDs, 10-decimal floats, unused x/y/z) | Compact positional-array format with lookup tables | Cut payload from 20MB to 3.8MB (81%). Cost: the wire format isn't self-describing, so rehydration logic lives in one place in `app.js` and must stay in sync with `pipeline.py`. |
-| Minimap assets | Ship source images (up to 9000×9000, ~24MB total) | Downscale to 2048×2048 JPEG (~1.1MB total) | Displayed at 700px, so source resolution was pure waste. 95% size reduction, no visible quality loss. |
+| Runtime | Preprocessed JSON | Parse Parquet in browser | Smaller/faster and browser-compatible. |
+| Frontend | Vanilla JS + Canvas | React + SVG | No build step; efficient repeated redraws. |
+| Backend | None | Flask/Node API | Dataset is read-only; static hosting is enough. |
+| Replay format | `[p,e,t,px,py]` indexes | Repeated strings/objects | Compact payload while retaining a per-match schema. |
+| Heatmaps | Client-side per match | Server/pre-rendered | Filters, actor visibility and replay time stay in sync. |
 
-## Notes on the biggest tradeoff
+## Validation
 
-**No live cross-match aggregation** is the one a Level Designer will hit first: the in-app heatmaps (deaths, kills, traffic) are scoped to whichever single match is selected, not "all matches on this map." Getting a map-wide answer today means running `analysis.py`, which prints exactly that breakdown per map. Precomputing an all-matches heatmap layer at build time (one static overlay image per map, generated alongside the JSON) is the first thing I'd add with more time — it's a data-pipeline change, not a redesign.
+The processed dataset contains **796 matches across 3 maps and 5 days**. The pipeline and analysis scripts were syntax-checked and the processed match index was checked against the individual match JSON files. A minimap sanity plot is included in the repository to validate the coordinate projection visually.
 
-## Running it
+## Run locally
 
 ```bash
-# regenerate processed data from the raw dataset
-python3 pipeline.py          # expects player_data/ alongside it
-
-# reproduce every figure in INSIGHTS.md
-python3 analysis.py
-
-# serve the app (file:// will not work — fetch() requires http)
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory lila-visualizer
+# open http://localhost:8000
 ```
 
-## Known limitations
-
-- No aggregate cross-match view in the UI.
-- The heatmap is per-match, so it's sparse on matches with few deaths.
-- No per-player isolation — all actors in a match draw at once, which is busy on 15-player matches.
-- The three maps carry very different sample sizes (AmbroseValley 566 matches, GrandRift 59), so GrandRift's spatial statistics are the least reliable.
-
-## Asset optimisation
-
-Source minimaps totalled ~24 MB (4320², 2160², and a 9000² image). They're downscaled once to 2048² JPEG at quality 85, giving ~1.1 MB total — a 95% reduction — with no visible loss at the 700px display size. 2048 leaves headroom for zooming later.
+Raw-data regeneration: `python3 lila-visualizer/pipeline.py`.
+Analysis reproduction: `python3 lila-visualizer/analysis.py`.
