@@ -2,7 +2,7 @@
 
 An interactive replay tool for LILA BLACK session telemetry. Pick a map, date, and match, then scrub through the match to see where players moved, what they looted, who they killed, and where they died — drawn over the in-game minimap.
 
-**Live demo:** _(add your deployed URL here)_
+**Live demo:** (https://lila-visualizer-gamma.vercel.app)
 
 <img width="979" height="768" alt="image" src="https://github.com/user-attachments/assets/f9c60341-8b7a-46fa-8ddc-facde7721f57" />
 
