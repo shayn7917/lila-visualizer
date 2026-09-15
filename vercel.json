@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/lila-visualizer/index.html" },
+    { "source": "/(.*)", "destination": "/lila-visualizer/$1" }
+  ]
+}
