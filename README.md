@@ -2,9 +2,15 @@
 
 Interactive replay and spatial-analysis dashboard for LILA BLACK session telemetry, built for the **LILA Games Product Engineer written test**.
 
-The assignment asks for a browser tool that turns raw telemetry into something a Level Designer can use: correct minimap journeys, human/bot distinction, event markers, map/date/match filters, playback, and kill/death/traffic heatmaps. fileciteturn38file0L41-L54
+## Live demo
 
-This repository contains the source code, processed dataset, analysis, architecture document, and deployment configuration in one place, as requested by the submission instructions. fileciteturn38file0L91-L98
+**[Open the hosted Player Journey Visualizer](https://lila-visualizer-gamma.vercel.app)**
+
+The deployed site is the version intended for evaluation. It is a static Vercel deployment backed by the processed dataset committed in this repository.
+
+The assignment asks for a browser tool that turns raw telemetry into something a Level Designer can use: correct minimap journeys, human/bot distinction, event markers, map/date/match filters, playback, and kill/death/traffic heatmaps.
+
+This repository contains the source code, processed dataset, analysis, architecture document, and deployment configuration in one place, as requested by the submission instructions.
 
 ## What is included
 
@@ -93,15 +99,15 @@ The resulting figures are documented in `lila-visualizer/INSIGHTS.md`.
 
 The application is fully static: no backend, database, build step, or environment variables are required.
 
-### Vercel
+### Current Vercel deployment
 
-Import this repository into Vercel **from the repository root**. The included `vercel.json` routes the root URL to `lila-visualizer/index.html` and serves the static assets from that directory. No framework preset or build command is needed.
+**[https://lila-visualizer-gamma.vercel.app](https://lila-visualizer-gamma.vercel.app)**
+
+This is the public URL to use for evaluation and submission. The repository also contains `vercel.json` and a root `index.html` entrypoint so the project can be served cleanly from the repository root.
 
 ### Other static hosts
 
 Publish the `lila-visualizer/` directory as the site directory. The important requirement for evaluation is a public URL where the dashboard opens without requiring the evaluator to run Python.
-
-> **Submission requirement:** the assignment explicitly requires a working deployed URL in addition to the GitHub repository. Add the final deployment URL to this section before submitting. fileciteturn38file0L91-L98
 
 ## Project layout
 
@@ -145,13 +151,14 @@ The pipeline normalizes time per match and projects game-world `x/z` coordinates
 | Map/date/match filters | Dashboard selectors |
 | Timeline/playback | Canvas replay + seek + speed |
 | Kill/death/traffic heatmaps | Client-side filtered overlays |
-| Hosted/shareable tool | Static deployment configuration; final public URL must be added before submission |
+| Hosted/shareable tool | **Vercel: https://lila-visualizer-gamma.vercel.app** |
 | Architecture document | `lila-visualizer/ARCHITECTURE.md` |
 | Three insights | `lila-visualizer/INSIGHTS.md` |
 
-The assignment's own checklist calls out these same product behaviors plus the architecture coordinate-mapping explanation and three supported insights. fileciteturn38file0L119-L130
+The assignment's checklist calls out these same product behaviors plus the architecture coordinate-mapping explanation and three supported insights.
 
 ## Documentation
 
 - [Architecture](lila-visualizer/ARCHITECTURE.md)
 - [Insights](lila-visualizer/INSIGHTS.md)
+- [Live demo](https://lila-visualizer-gamma.vercel.app)
