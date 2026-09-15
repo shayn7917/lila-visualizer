@@ -1,0 +1,165 @@
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f1115;
+  color: #e6e6e6;
+  margin: 0;
+}
+
+header {
+  padding: 14px 20px;
+  background: #171a21;
+  border-bottom: 1px solid #2a2e37;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.layout {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.controls {
+  width: 240px;
+  flex-shrink: 0;
+  background: #171a21;
+  border: 1px solid #2a2e37;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.controls label {
+  display: block;
+  font-size: 13px;
+  color: #9aa0aa;
+  margin-bottom: 14px;
+}
+
+.controls select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px;
+  background: #0f1115;
+  color: #e6e6e6;
+  border: 1px solid #2a2e37;
+  border-radius: 4px;
+}
+
+.controls hr {
+  border: none;
+  border-top: 1px solid #2a2e37;
+  margin: 16px 0;
+}
+
+.match-meta {
+  font-size: 12px;
+  color: #9aa0aa;
+  line-height: 1.6;
+}
+
+.legend div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.human { background: #ff4d4d; }
+.dot.bot { background: #4dd2ff; }
+
+.marker {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+}
+.marker.kill { background: gold; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.marker.killed { background: #ff4d4d; }
+.marker.loot { background: orange; border-radius: 50%; width: 8px; height: 8px; }
+.marker.storm { background: #b266ff; }
+
+.checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.checkbox input { width: auto; }
+
+.heatmap-modes {
+  margin-top: 8px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.heatmap-modes label {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9aa0aa;
+  margin-bottom: 0;
+}
+.heatmap-modes input { width: auto; margin: 0; }
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.canvas-wrap {
+  border: 1px solid #2a2e37;
+  border-radius: 8px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+#mapCanvas {
+  width: 700px;
+  height: 700px;
+  background: #000;
+  display: block;
+}
+
+.timeline {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 700px;
+}
+
+.timeline button {
+  background: #2a6df5;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.timeline button:hover { background: #3a7dff; }
+
+.timeline input[type="range"] {
+  flex: 1;
+}
+
+#timeLabel {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: #9aa0aa;
+  min-width: 40px;
+}
